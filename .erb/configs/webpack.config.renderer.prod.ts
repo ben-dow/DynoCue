@@ -25,14 +25,18 @@ const devtoolsConfig =
       }
     : {};
 
-const configuration: webpack.Configuration = {
+export default merge(baseConfig, {
   ...devtoolsConfig,
 
   mode: 'production',
 
   target: ['web', 'electron-renderer'],
 
-  entry: [path.join(webpackPaths.srcRendererPath, 'index.tsx')],
+  entry: [
+    'core-js',
+    'regenerator-runtime/runtime',
+    path.join(webpackPaths.srcRendererPath, 'index.tsx'),
+  ],
 
   output: {
     path: webpackPaths.distRendererPath,
@@ -58,23 +62,54 @@ const configuration: webpack.Configuration = {
             },
           },
           'sass-loader',
+          {
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                plugins: [require('tailwindcss'), require('autoprefixer')],
+              },
+            },
+          },
         ],
         include: /\.module\.s?(c|a)ss$/,
       },
       {
         test: /\.s?(a|c)ss$/,
-        use: [MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader'],
+        use: [
+          MiniCssExtractPlugin.loader,
+          'css-loader',
+          'sass-loader',
+          {
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                plugins: [require('tailwindcss'), require('autoprefixer')],
+              },
+            },
+          },
+        ],
         exclude: /\.module\.s?(c|a)ss$/,
       },
-      // Fonts
+      //Font Loader
       {
         test: /\.(woff|woff2|eot|ttf|otf)$/i,
         type: 'asset/resource',
       },
-      // Images
+      // SVG Font
       {
-        test: /\.(png|svg|jpg|jpeg|gif)$/i,
-        type: 'asset/resource',
+        test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
+        use: {
+          loader: 'url-loader',
+          options: {
+            limit: 10000,
+            mimetype: 'image/svg+xml',
+          },
+        },
+      },
+      // Common Image Formats
+      {
+        test: /\.(?:ico|gif|png|jpg|jpeg|webp)$/,
+        use: 'url-loader',
       },
     ],
   },
@@ -109,7 +144,9 @@ const configuration: webpack.Configuration = {
     }),
 
     new BundleAnalyzerPlugin({
-      analyzerMode: process.env.ANALYZE === 'true' ? 'server' : 'disabled',
+      analyzerMode:
+        process.env.OPEN_ANALYZER === 'true' ? 'server' : 'disabled',
+      openAnalyzer: process.env.OPEN_ANALYZER === 'true',
     }),
 
     new HtmlWebpackPlugin({
@@ -124,6 +161,4 @@ const configuration: webpack.Configuration = {
       isDevelopment: process.env.NODE_ENV !== 'production',
     }),
   ],
-};
-
-export default merge(baseConfig, configuration);
+});
